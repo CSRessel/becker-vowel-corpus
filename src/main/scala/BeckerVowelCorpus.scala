@@ -3,24 +3,45 @@ import java.io._
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Set
 import util.control.Breaks._
+import vegas._
+import vegas.data.External._
 
 object BeckerVowelCorpus {
   def main(args:Array[String]): Unit = {
-    val phonemes: HashMap[String, Set[(String, String, String, String, String)]]= load()
+    val data: HashMap[String, Set[(String, String, String, String, String)]] = loadCorpus()
+    val phonemes: Seq[Map[String, String]] =
+      data.map{ case(k,v) => Map("IPA" -> k, "F1" -> v.head._2, "F2" -> v.head._3) } toList
     val samples: Set[(String, String, String, String, String)] = Set()
-    phonemes.foreach(samples ++= _._2)
+    data.foreach(samples ++= _._2)
     val languages: Set[String] = Set()
     samples.foreach (languages += _._1)
 
     // expected 53, got 68 ?
-    println(s"${phonemes.size} distinct phonemes")
+    println(s"${data.size} distinct phonemes")
     // expected 223, got 231 ?
     println(s"${languages.size} distinct languages")
     // nothing expected, got 3694
     println(s"${samples.size} distinct vowel/language samples")
+
+	val plot = Vegas("F2 vs F1", width=600, height=400).
+      withData(phonemes).
+      mark(Text).
+      encodeX("F2", Quantitative, sortOrder=SortOrder.Desc).
+      encodeY("F1", Quantitative, sortOrder=SortOrder.Desc).
+      encodeText(field="IPA", dataType= Nominal).
+      window.
+      show
+
+    /* characteristics to analyze:
+     *   overall heatmap of all samples
+     *   overall heatmap of avg samples per phoneme
+     *   actual distribution of phonemes (using: avg, random, median)
+     *   distribution of vowels in each n-vowel language (trelllis?)
+     */
+
   }
 
-  def load(): HashMap[String, Set[(String, String, String, String, String)]] = {
+  def loadCorpus(): HashMap[String, Set[(String, String, String, String, String)]] = {
     println("loading Becker vowel corpus...")
 
     val reader = CSVReader.open(new File("src/main/resources/BeckerVowelCorpus.csv"))
@@ -31,7 +52,7 @@ object BeckerVowelCorpus {
 
     // Key: IPA notation
     // Value: Set(language, F1, F2, F3, F4)
-    val phonemes: HashMap[String, Set[(String, String, String, String, String)]] = HashMap()
+    val data: HashMap[String, Set[(String, String, String, String, String)]] = HashMap()
 
     for (e <- entries) {
       val language = e.apply(headerIndexes("Language"))
@@ -48,16 +69,16 @@ object BeckerVowelCorpus {
         if (phonemePS.isEmpty && phonemeOS.isEmpty) {
           break
         } else if (!phonemePS.isEmpty && !phonemeOS.isEmpty && phonemePS != phonemeOS) {
-          println(s"[WARN]\tOS and PS defined but not equal for ${language} V${v} (OS=${phonemeOS}, PS=${phonemePS}) using OS")
+          //println(s"[WARN]\tOS and PS defined but not equal for ${language} V${v} (OS=${phonemeOS}, PS=${phonemePS}) using OS")
         }
 
         val phoneme = if (!phonemeOS.isEmpty) phonemeOS else phonemePS
-        val phonemeEntries = phonemes.getOrElse(phonemeOS, Set())
+        val phonemeEntries = data.getOrElse(phonemeOS, Set())
         phonemeEntries.add(language, f1, f2, f3, f4)
-        phonemes += (phonemeOS -> phonemeEntries)
+        data += (phonemeOS -> phonemeEntries)
       }
     }
 
-    return phonemes
+    return data
   }
 }

@@ -1,8 +1,7 @@
 scalaVersion := "2.11.12"
 organization := "org.csressel"
-name := "becker-vowel-corpus"
+name := "vowelcorpus"
 version := "1.0"
-libraryDependencies += "org.typelevel" %% "cats-core" % "1.1.0"
 libraryDependencies += "com.github.tototoshi" %% "scala-csv" % "1.3.5"
 libraryDependencies += "org.vegas-viz" %% "vegas" % "0.3.11"
 
